@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Start the network....
+#
+
+APACHE_DIR=/usr/bin
+
+case "$1" in
+  start)
+    echo "Starting apache web server..."
+    $APACHE_DIR/apachectl -k start
+    # Droit admin script
+    chown root:daemon /var/www/cgi-bin
+    chmod 777 /var/www
+    chmod 777 /var/www/cgi-bin
+    chmod 777 /var/www/cgi-bin/test
+    ;;
+  stop)
+    echo -n "Stopping apache web server..."
+    $APACHE_DIR/apachectl -k stop
+    ;;
+  restart|reload)
+    # Delete PID file
+    rm /var/log/httpd.pid
+    $APACHE_DIR/apachectl -k stop
+    $APACHE_DIR/apachectl -k start
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?

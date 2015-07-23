@@ -1,0 +1,19 @@
+Signed-off-by: GaÃ«tan PRIN <gaetan.prin@gmail.com>
+---
+ arch/arm/Kconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 1faad0d..cb1b288 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -267,6 +267,7 @@ config PHYS_OFFSET
+ 			ARCH_INTEGRATOR || \
+ 			ARCH_IOP13XX || \
+ 			ARCH_KS8695 || \
++			ARCH_BCM2708 || \
+ 			(ARCH_REALVIEW && !REALVIEW_HIGH_PHYS_OFFSET)
+ 	default 0x10000000 if ARCH_OMAP1 || ARCH_RPC
+ 	default 0x20000000 if ARCH_S5PV210
+-- 
+2.1.4

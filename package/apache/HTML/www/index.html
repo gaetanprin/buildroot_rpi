@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Square wave generator</title>
+		<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1"> 
+		<link type="text/CSS" rel="stylesheet" href="style.css" />
+		<link type="text/CSS" rel="stylesheet" href="jquery-ui.css" />
+		<script src="jquery-1.10.2.js"></script>
+		<script src="jquery-ui.js"></script>
+		<script src="cookie.js"></script>
+		<script src="java_function.js"></script>
+	</head>
+	
+	<body>
+
+		<div id="accordion">
+			<h3>Linux mode</h3>
+			<div>
+				Select a Linux operating mode (<b><span id="NameLinux"></span></b>) :
+				<br><br>
+				<input id="standard" type="radio" name="distri" value="standard" checked>Standard</input>
+				<input id="preempt_rt" type="radio" name="distri" value="preempt_rt">Preempt RT</input>
+				<input id="xenomai" type="radio" name="distri" value="xenomai">Xenomai</input>
+				<br><br>
+				<button onclick="ChoixMode();">Submit</button>
+				<span id="WaitProgressTexte1" style="visibility : hidden;">Please wait : </span>
+					<span id="WaitProgress" style="visibility : hidden;">20</span> <!-- Valeur de compteur par defaut : 15 -->
+				<span id="WaitProgressTexte2" style="visibility : hidden;"> seconds !</span>
+				<br><br>
+				<div id="progressbar">
+					<div class="progress-label">Loading...</div>
+				</div>
+			</div>
+			<h3>Parameters</h3>
+			<div>
+				<div id="choix">
+					<span id="Texte_periodic"><b>Periodic</b></span>
+					<div id="onoffswitch">
+					    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onchange="ChoiceChange(this)"/>
+					    <label class="onoffswitch-label" for="myonoffswitch">
+						<span class="onoffswitch-inner"></span>
+						<span class="onoffswitch-switch"></span>
+					    </label>
+					</div>
+					<span id="Texte_pulse"><b>Pulse</b></span>
+				</div>
+				<div id="choixParameters">
+					<div id="periodic">
+						<b>Frequency (1 to 999) :</b>
+						<input id="frequency" type="number" name="frequency" value ="500" style="width:40px;" onkeypress="return numKey(event)" onchange="CheckNo(this)"/> 
+						<select id="unit_hertz" name="unit">
+							<option value="Hz">Hz</option>
+							<option value="kHz">kHz</option>
+							<option value="MHz">MHz</option>
+						</select>
+						<br><br>
+						<b>Alpha : </b><input type="text" id="amount" readonly style="border:0; color:#000000; font-weight:bold; width:50px;">
+						<br><br>
+						<div id="slider"></div>
+					</div>
+					<div id="pulse">
+						<b>tON (1 to 999) :</b>
+						<input id="tON" type="number" name="tON" value ="500" style="width:50px;" onkeypress="return numKey(event)" onchange="CheckNo(this)"/> 
+						<select id="unit_second" name="unit">
+							<option value="Hz">ns</option>
+							<option value="kHz">µs</option>
+							<option value="MHz">ms</option>
+							<option value="MHz">s</option>
+						</select>
+					</div>
+				</div>
+				<br>
+				<div id="Output_enable">
+					<span id="Texte_output_enable"><b>Output activation :</b></span>
+					<div class="checkbox_carre">
+						<input type="checkbox" name="SESSION_OK" value="SESSION_OK" id="CHECK_SESSION" onchange="OutputChange(this)"/>
+						<label for="CHECK_SESSION"></label>
+					</div>
+					<span id="Texte_output"><b>OFF</b></span>
+				</div>
+			</div>
+			<h3>Performance analysis</h3>
+			<div>
+				<b>Execute script "cyclictest" :</b>
+				<br><br>
+				<i>CMD : cyclictest -t 1 -p 80 -i 1000 -l 10000 -h 200 -q > ouputfile</i><br>
+				<ul>
+				  	<li><b>-t :</b> number of threads</li>
+				  	<li><b>-p :</b> priority of highest prio thread</li>
+				  	<li><b>-i :</b> base interval of thread in us</li>
+					<li><b>-l :</b> number of loops</li>
+					<li><b>-h :</b> dump a latency histogram to stdout</li>
+					<li><b>-q :</b> print only a summary on exit</li>
+				</ul>
+				<button onclick="Perform_mode();">Submit</button>
+				<br><br>
+				<div id="progressbarPERFORM">
+					<div class="progress-label">Loading...</div>
+				</div>
+				<br><br>
+				<img id="ID_IMG_PERFORM" src="" alt="GNUplot">
+			</div>
+			<h3>HTTP Request (CGI)</h3>
+			<div>
+				<!-- Frame execute programme -->
+				<iframe id="ID_FRAME" src="defaut_cgi.html" style="width: 100%; height: 200px;" frameborder="0" allowTransparency="true"></iframe>
+			</div>
+			<h3>About</h3>
+			<div>
+				Square wave generator<br>
+				<ul>
+				  	<li>Version : 1.1</li>
+				  	<li>Created by : Hugo TOUZE, Maxilimien RABOTIN, Gaëtan PRIN</li>
+				  	<li>Date : 21/07/2015</li>
+				</ul>
+			</div>
+		</div>
+
+	</body>
+</html>

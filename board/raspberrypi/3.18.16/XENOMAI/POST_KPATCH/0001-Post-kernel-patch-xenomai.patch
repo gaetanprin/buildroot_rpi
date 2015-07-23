@@ -1,0 +1,229 @@
+Signed-off-by: GaÃ«tan PRIN <gaetan.prin@gmail.com>
+---
+ arch/arm/Kconfig                     |  3 +-
+ arch/arm/mach-bcm2708/bcm2708.c      | 64 +++++++++++++++++++++++++++++++++++-
+ arch/arm/mach-bcm2708/bcm2708_gpio.c | 20 ++++++-----
+ 3 files changed, 76 insertions(+), 11 deletions(-)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index de32ccf..427e400 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -272,6 +272,7 @@ config PHYS_OFFSET
+ 			ARCH_INTEGRATOR || \
+ 			ARCH_IOP13XX || \
+ 			ARCH_KS8695 || \
++			ARCH_BCM2708 || \
+ 			(ARCH_REALVIEW && !REALVIEW_HIGH_PHYS_OFFSET)
+ 	default 0x10000000 if ARCH_OMAP1 || ARCH_RPC
+ 	default 0x20000000 if ARCH_S5PV210
+@@ -1057,7 +1058,7 @@ config IPIPE_ARM_KUSER_TSC
+        bool
+        select GENERIC_TIME_VSYSCALL
+        select IPIPE_HAVE_HOSTRT if IPIPE
+-       default y if ARCH_AT91 || ARM_TIMER_SP804 || ARCH_MXC || ARCH_OMAP || PLAT_PXA || PLAT_S3C24XX || ARCH_SA1100
++       default y if ARCH_AT91 || ARM_TIMER_SP804 || ARCH_MXC || ARCH_OMAP || PLAT_PXA || PLAT_S3C24XX || ARCH_SA1100 || ARCH_BCM2708
+ endif
+ 
+ source "arch/arm/firmware/Kconfig"
+diff --git a/arch/arm/mach-bcm2708/bcm2708.c b/arch/arm/mach-bcm2708/bcm2708.c
+index 762e17c..2c7861b 100644
+--- a/arch/arm/mach-bcm2708/bcm2708.c
++++ b/arch/arm/mach-bcm2708/bcm2708.c
+@@ -30,6 +30,8 @@
+ #include <linux/clk-provider.h>
+ #include <linux/clkdev.h>
+ #include <linux/clockchips.h>
++#include <linux/ipipe.h>
++#include <linux/ipipe_tickdev.h>
+ #include <linux/cnt32_to_63.h>
+ #include <linux/io.h>
+ #include <linux/module.h>
+@@ -162,6 +164,12 @@ void __init bcm2708_map_io(void)
+ /* The STC is a free running counter that increments at the rate of 1MHz */
+ #define STC_FREQ_HZ 1000000
+ 
++#define SYSTEM_CLOCK_FREQ_HZ		250000000
++
++// The ARM Timer is a free running counter that increments at the rate of
++// the system clock (without pre-scaling)
++#define ARM_TIMER_FREQ_HZ				SYSTEM_CLOCK_FREQ_HZ
++
+ static inline uint32_t timer_read(void)
+ {
+ 	/* STC: a free running counter that increments at the rate of 1MHz */
+@@ -981,12 +989,27 @@ static int timer_set_next_event(unsigned long cycles,
+ 	return 0;
+ }
+ 
++static inline void bcm2708_timer_ack(void)
++{
++	writel(1 << 3, __io_address(ST_BASE + 0x00));	/* stcs clear timer int */
++}
++
++#ifdef CONFIG_IPIPE
++static struct ipipe_timer bcm2708_itimer = {
++	.irq = IRQ_TIMER3,
++	.ack = bcm2708_timer_ack,
++};
++#endif /* CONFIG_IPIPE */
++
+ static struct clock_event_device timer0_clockevent = {
+ 	.name = "timer0",
+ 	.shift = 32,
+ 	.features = CLOCK_EVT_FEAT_ONESHOT,
+ 	.set_mode = timer_set_mode,
+ 	.set_next_event = timer_set_next_event,
++#ifdef CONFIG_IPIPE
++	.ipipe_timer    = &bcm2708_itimer,
++#endif /* CONFIG_IPIPE */
+ };
+ 
+ /*
+@@ -996,7 +1019,10 @@ static irqreturn_t bcm2708_timer_interrupt(int irq, void *dev_id)
+ {
+ 	struct clock_event_device *evt = &timer0_clockevent;
+ 
+-	writel(1 << 3, __io_address(ST_BASE + 0x00));	/* stcs clear timer int */
++	if (!clockevent_ipipe_stolen(evt))
++		bcm2708_timer_ack();
++
++	__ipipe_tsc_update();
+ 
+ 	evt->event_handler(evt);
+ 
+@@ -1009,6 +1035,38 @@ static struct irqaction bcm2708_timer_irq = {
+ 	.handler = bcm2708_timer_interrupt,
+ };
+ 
++#ifdef CONFIG_IPIPE
++static struct __ipipe_tscinfo tsc_info = {
++	.type = IPIPE_TSC_TYPE_FREERUNNING,
++	.u = {
++		{
++			.mask = 0xffffffff,
++		},
++	},
++};
++
++static void bcm2708_xenomai_tsc_init(void)
++{
++#ifdef CONFIG_PM
++	tsc_info.freq = STC_FREQ_HZ;
++	tsc_info.counter_vaddr = (unsigned long)__io_address(ST_BASE + 4);
++	tsc_info.u.fr.counter = (unsigned *)(ST_BASE + 4);
++#else
++	/*
++	 * Start the ARM timer
++	 */
++	unsigned int control_reg = TIMER_CTRL_ENAFREE | TIMER_CTRL_DBGHALT |
++		TIMER_CTRL_32BIT;
++	writel(control_reg, __io_address(ARM_T_CONTROL));
++
++	tsc_info.freq = ARM_TIMER_FREQ_HZ;
++	tsc_info.counter_vaddr = (unsigned long)__io_address(ARM_T_FREECNT);
++	tsc_info.u.fr.counter = (unsigned *)(ARMCTRL_TIMER0_1_BASE + 0x20);
++#endif /* CONFIG_PM */
++	__ipipe_tsc_register(&tsc_info);
++}
++#endif /* CONFIG_IPIPE */
++
+ /*
+  * Set up timer interrupt, and return the current time in seconds.
+  */
+@@ -1045,6 +1103,10 @@ static void __init bcm2708_timer_init(void)
+ 	clockevents_register_device(&timer0_clockevent);
+ 
+ 	register_current_timer_delay(&bcm2708_delay_timer);
++
++#ifdef CONFIG_IPIPE
++	bcm2708_xenomai_tsc_init();
++#endif
+ }
+ 
+ #if defined(CONFIG_LEDS_GPIO) || defined(CONFIG_LEDS_GPIO_MODULE)
+diff --git a/arch/arm/mach-bcm2708/bcm2708_gpio.c b/arch/arm/mach-bcm2708/bcm2708_gpio.c
+index c1e9254..069ec1b 100644
+--- a/arch/arm/mach-bcm2708/bcm2708_gpio.c
++++ b/arch/arm/mach-bcm2708/bcm2708_gpio.c
+@@ -19,6 +19,7 @@
+ #include <linux/slab.h>
+ #include <mach/gpio.h>
+ #include <linux/gpio.h>
++#include <linux/ipipe.h>
+ #include <linux/platform_device.h>
+ #include <mach/platform.h>
+ #include <linux/pinctrl/consumer.h>
+@@ -56,7 +57,7 @@ enum { GPIO_FSEL_INPUT, GPIO_FSEL_OUTPUT,
+ 	 * the GPIO code. This also makes the case of a GPIO routine call from
+ 	 * the IRQ code simpler.
+ 	 */
+-static DEFINE_SPINLOCK(lock);	/* GPIO registers */
++static IPIPE_DEFINE_SPINLOCK(lock);	/* GPIO registers */
+ 
+ struct bcm2708_gpio {
+ 	struct list_head list;
+@@ -270,23 +271,25 @@ static struct irq_chip bcm2708_irqchip = {
+ 	.name = "GPIO",
+ 	.irq_enable = bcm2708_gpio_irq_unmask,
+ 	.irq_disable = bcm2708_gpio_irq_mask,
++#ifdef CONFIG_IPIPE
++	.irq_ack        = bcm2708_gpio_irq_mask,
++	.irq_mask_ack   = bcm2708_gpio_irq_mask,
++#endif /* CONFIG_IPIPE */
+ 	.irq_unmask = bcm2708_gpio_irq_unmask,
+ 	.irq_mask = bcm2708_gpio_irq_mask,
+ 	.irq_set_type = bcm2708_gpio_irq_set_type,
+ };
+ 
+-static irqreturn_t bcm2708_gpio_interrupt(int irq, void *dev_id)
++static void bcm2708_gpio_interrupt(unsigned int irq, struct irq_desc *desc)
+ {
+ 	unsigned long edsr;
+ 	unsigned bank;
+ 	int i;
+ 	unsigned gpio;
+ 	unsigned level_bits;
+-	struct bcm2708_gpio *gpio_data = dev_id;
+ 
+ 	for (bank = 0; bank < GPIO_BANKS; bank++) {
+ 		edsr = readl(__io_address(GPIO_BASE) + GPIOEDS(bank));
+-		level_bits = gpio_data->high[bank] | gpio_data->low[bank];
+ 
+ 		for_each_set_bit(i, &edsr, 32) {
+ 			gpio = i + bank * 32;
+@@ -294,14 +297,14 @@ static irqreturn_t bcm2708_gpio_interrupt(int irq, void *dev_id)
+ 			if (!(level_bits & (1<<i)))
+ 				writel(1<<i,
+ 				       __io_address(GPIO_BASE) + GPIOEDS(bank));
+-			generic_handle_irq(gpio_to_irq(gpio));
++			ipipe_handle_demuxed_irq(gpio_to_irq(gpio));
+ 			/* ack level triggered IRQ after handling them */
+ 			if (level_bits & (1<<i))
+ 				writel(1<<i,
+ 				       __io_address(GPIO_BASE) + GPIOEDS(bank));
+ 		}
+ 	}
+-	return IRQ_HANDLED;
++	return;
+ }
+ 
+ static struct irqaction bcm2708_gpio_irq = {
+@@ -318,13 +321,12 @@ static void bcm2708_gpio_irq_init(struct bcm2708_gpio *ucb)
+ 
+ 	for (irq = GPIO_IRQ_START; irq < (GPIO_IRQ_START + GPIO_IRQS); irq++) {
+ 		irq_set_chip_data(irq, ucb);
+-		irq_set_chip_and_handler(irq, &bcm2708_irqchip,
+-					 handle_simple_irq);
++		irq_set_chip_and_handler(irq, &bcm2708_irqchip, handle_level_irq);
+ 		set_irq_flags(irq, IRQF_VALID);
+ 	}
+ 
+ 	bcm2708_gpio_irq.dev_id = ucb;
+-	setup_irq(IRQ_GPIO3, &bcm2708_gpio_irq);
++	irq_set_chained_handler(IRQ_GPIO3, bcm2708_gpio_interrupt);
+ }
+ 
+ #else
+-- 
+2.1.4
