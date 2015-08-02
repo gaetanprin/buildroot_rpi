@@ -92,14 +92,6 @@ APACHE_POST_INSTALL_STAGING_HOOKS += APACHE_FIX_STAGING_APACHE_CONFIG
 
 define APACHE_CLEANUP_TARGET
 	$(RM) -rf $(TARGET_DIR)/usr/manual $(TARGET_DIR)/usr/build
-	# Installation du service S90apache
-	$(INSTALL) -m 0755 package/apache/FilesSystem/S90apache $(TARGET_DIR)/etc/init.d/S90apache
-	# Copie du fichier de configuration d'apache
-	cp package/apache/FilesSystem/httpd.conf $(TARGET_DIR)/etc/apache2/httpd.conf
-	# Inscription des droits admin pour l'utilisateur daemon
-	cp package/apache/FilesSystem/sudoers $(TARGET_DIR)/etc/sudoers
-	# Copie des fichiers WWW
-	cp -rf package/apache/HTML/www $(TARGET_DIR)/var/www
 endef
 APACHE_POST_INSTALL_TARGET_HOOKS += APACHE_CLEANUP_TARGET
 
