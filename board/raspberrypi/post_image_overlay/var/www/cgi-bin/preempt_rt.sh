@@ -1,11 +1,11 @@
 #!/bin/bash
 echo "Content-type: text/html"
 echo ""
-echo "Copy : /boot/cmdline_preempt_rt.txt --> /boot/cmdline.txt"
+echo "Copy : cmdline preempt_rt  --> /boot/cmdline.txt"
 echo "<br>"
-sudo cp /boot/cmdline_preempt_rt.txt /boot/cmdline.txt
-echo "Copy : /boot/zImage_preempt_rt --> /boot/zImage"
+sudo cp /boot/$(ls /boot/ | grep -i cmdline | grep -i preempt | tr -d "*") /boot/cmdline.txt
+echo "Copy : zImage preempt rt --> /boot/zImage"
 echo "<br>"
-sudo cp /boot/zImage_preempt_rt /boot/zImage
+sudo cp /boot/$(ls /boot/ | grep -i zImage | grep -i preempt | tr -d "*") /boot/zImage
 echo "Start reboot"
 sudo reboot

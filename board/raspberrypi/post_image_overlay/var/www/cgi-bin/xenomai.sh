@@ -1,11 +1,11 @@
 #!/bin/bash
 echo "Content-type: text/html"
 echo ""
-echo "Copy : /boot/cmdline_xenomai.txt --> /boot/cmdline.txt"
+echo "Copy : cmdline xenomai --> /boot/cmdline.txt"
 echo "<br>"
-sudo cp /boot/cmdline_xenomai.txt /boot/cmdline.txt
-echo "Copy : /boot/zImage_xenomai --> /boot/zImage"
+sudo cp /boot/$(ls /boot/ | grep -i cmdline | grep -i xenomai | tr -d "*") /boot/cmdline.txt
+echo "Copy : zImage xenomai --> /boot/zImage"
 echo "<br>"
-sudo cp /boot/zImage_xenomai /boot/zImage
+sudo cp /boot/$(ls /boot/ | grep -i zimage | grep -i xenomai | tr -d "*") /boot/zImage
 echo "Start reboot"
 sudo reboot
