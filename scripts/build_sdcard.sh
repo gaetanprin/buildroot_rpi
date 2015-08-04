@@ -38,7 +38,20 @@ IMAGE_ROOTFS_ALIGNMENT="4096"
 
 # Use an uncompressed ext2/3/4 by default as rootfs
 SDIMG_ROOTFS_TYPE="ext3"
-SDIMG_ROOTFS="${CURRENT_DIR}/rootfs.${SDIMG_ROOTFS_TYPE}"
+rootfs_num=1;
+
+#Get the size of each rootfs
+for i in $(ls ${CURRENT_DIR} | grep RASP_);do
+SDIMG_ROOTFS_SIZE[$rootfs_num]=$(du -bkl ${CURRENT_DIR}/$i/rootfs.${SDIMG_ROOTFS_TYPE} | awk '{print $1}')
+rootfs_num=$(expr $rootfs_num \+ 1)
+done;
+rootfs_num=0;
+
+#Calculate the biggest size of ROOTFS
+ROOTFS_BIG_SIZE=0
+for n in "${SDIMG_ROOTFS_SIZE[@]}" ; do
+    ((n > SDIMG_ROOTFS_SIZE)) && SDIMG_ROOTFS_SIZE=$n
+done
 
 # Additional files and/or directories to be copied into the vfat partition from the IMAGE_ROOTFS.
 FATPAYLOAD=""
@@ -46,7 +59,7 @@ FATPAYLOAD=""
 # Align partitions
 BOOT_SPACE_ALIGNED=$(expr ${BOOT_SPACE} + ${IMAGE_ROOTFS_ALIGNMENT} - 1)
 BOOT_SPACE_ALIGNED=$(expr ${BOOT_SPACE_ALIGNED} - ${BOOT_SPACE_ALIGNED} % ${IMAGE_ROOTFS_ALIGNMENT})
-ROOTFS_SIZE=`du -bksL ${SDIMG_ROOTFS} | awk '{print $1}'`
+ROOTFS_SIZE=$SDIMG_ROOTFS_SIZE
 # Round up RootFS size to the alignment size as well
 ROOTFS_SIZE_ALIGNED=$(expr ${ROOTFS_SIZE} + ${IMAGE_ROOTFS_ALIGNMENT} - 1)
 ROOTFS_SIZE_ALIGNED=$(expr ${ROOTFS_SIZE_ALIGNED} - ${ROOTFS_SIZE_ALIGNED} % ${IMAGE_ROOTFS_ALIGNMENT})
@@ -60,12 +73,8 @@ dd if=/dev/zero of=${SDIMG} bs=1024 count=0 seek=${SDIMG_SIZE}
 # Create boot partition and mark it as bootable
  parted -s ${SDIMG} unit KiB mkpart primary fat32 ${IMAGE_ROOTFS_ALIGNMENT} $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT})
  parted -s ${SDIMG} set 1 boot on
-# Create rootfs STD partition 
- parted -s ${SDIMG} unit KiB mkpart primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT}) $(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT} \+ ${ROOTFS_SIZE_ALIGNED}) 
-#Create rootfs PREEMPT partition 
- parted -s ${SDIMG} unit KiB mkpart primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+  2 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ ${ROOTFS_SIZE_ALIGNED}) $(expr ${BOOT_SPACE_ALIGNED} \+  2 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ 2 \* ${ROOTFS_SIZE_ALIGNED}) 
 # Create rootfs XENOMAI partition 
- parted -s ${SDIMG} unit KiB mkpart  primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+  3 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ 2 \* ${ROOTFS_SIZE_ALIGNED}) $(expr ${BOOT_SPACE_ALIGNED} \+ 3 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ 3 \* ${ROOTFS_SIZE_ALIGNED}) 
+# parted -s ${SDIMG} unit KiB mkpart  primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+  3 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ 2 \* ${ROOTFS_SIZE_ALIGNED}) $(expr ${BOOT_SPACE_ALIGNED} \+ 3 \* ${IMAGE_ROOTFS_ALIGNMENT} \+ 3 \* ${ROOTFS_SIZE_ALIGNED}) 
 
 # Create a vfat image with boot files
 BOOT_BLOCKS=$(LC_ALL=C parted -s ${SDIMG} unit b print | awk '/ 1 / { print substr($4, 1, length($4 -1)) / 512 /2 }')
@@ -75,6 +84,8 @@ mkfs.vfat -n "Boot" -S 512 -C ${CURRENT_DIR}/boot.img $BOOT_BLOCKS
 shift
 #Set starting partition number for ROOTFS
 part_num=2;
+#Set rootfs num
+rootfs_num=1;
 #Copy RPI startup files
 mcopy -i ${CURRENT_DIR}/boot.img  -s ${CURRENT_DIR}/rpi-firmware/bootcode.bin ::/
 mcopy -i ${CURRENT_DIR}/boot.img  -s ${CURRENT_DIR}/rpi-firmware/start.elf ::/
@@ -82,9 +93,15 @@ mcopy -i ${CURRENT_DIR}/boot.img  -s ${CURRENT_DIR}/rpi-firmware/fixup.dat ::/
 mcopy -i ${CURRENT_DIR}/boot.img  -s ${CURRENT_DIR}/rpi-firmware/config.txt ::/
 
 for i in $(ls ${CURRENT_DIR} | grep RASP_); do
+# Create rootfs  partition 
+ parted -s ${SDIMG} unit KiB mkpart  primary ext2 $(expr ${BOOT_SPACE_ALIGNED} \+  $rootfs_num \* ${IMAGE_ROOTFS_ALIGNMENT} \+ $(expr $rootfs_num \- 1)  \* ${ROOTFS_SIZE_ALIGNED}) $(expr ${BOOT_SPACE_ALIGNED} \+ $rootfs_num \* ${IMAGE_ROOTFS_ALIGNMENT} \+ $rootfs_num \* ${ROOTFS_SIZE_ALIGNED})
+
+rootfs_num=$(expr $rootfs_num \+ 1)
+#Format command line
 cmdline="$(cat $CURRENT_DIR/../../board/raspberrypi/cmdline.txt)"
 cmdline+=" root=/dev/mmcblk0p$part_num rootwait"
 echo $cmdline > ${CURRENT_DIR}/$i/cmdline.$i
+
 # Copy boot files
 if [[ $i == *"STD"* ]]
 then
