@@ -1,5 +1,6 @@
 #Ignore folder
 .config
+..config.tmp
 .config.old
 output
 dl

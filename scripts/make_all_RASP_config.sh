@@ -13,6 +13,9 @@ cp -L output/images/rootfs.ext3 output/images/$i/
 #Force Kernel and rootfs rebuild
 rm -rf output/build/linux-7*
 rm -rf output/images/rootfs*
+rm -rf output/images/staging/
+rm -rf output/host/usr/arm-buildroot-linux-uclibcgnueabi/sysroot/
+rm -rf output/build/
 done
 
 bash $BR_TOP/scripts/build_sdcard.sh $BR_TOP/output/images/
