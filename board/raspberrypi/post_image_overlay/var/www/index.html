@@ -33,40 +33,10 @@
 			</div>
 			<h3>Parameters</h3>
 			<div>
-				<div id="choix">
-					<span id="Texte_periodic"><b>Periodic</b></span>
-					<div id="onoffswitch">
-					    <input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="myonoffswitch" onchange="ChoiceChange(this)"/>
-					    <label class="onoffswitch-label" for="myonoffswitch">
-						<span class="onoffswitch-inner"></span>
-						<span class="onoffswitch-switch"></span>
-					    </label>
-					</div>
-					<span id="Texte_pulse"><b>Pulse</b></span>
-				</div>
 				<div id="choixParameters">
 					<div id="periodic">
-						<b>Frequency (1 to 999) :</b>
+						<b>Frequency (2 to 5000000) :</b>
 						<input id="frequency" type="number" name="frequency" value ="500" style="width:40px;" onkeypress="return numKey(event)" onchange="CheckNo(this)"/> 
-						<select id="unit_hertz" name="unit">
-							<option value="Hz">Hz</option>
-							<option value="kHz">kHz</option>
-							<option value="MHz">MHz</option>
-						</select>
-						<br><br>
-						<b>Alpha : </b><input type="text" id="amount" readonly style="border:0; color:#000000; font-weight:bold; width:50px;">
-						<br><br>
-						<div id="slider"></div>
-					</div>
-					<div id="pulse">
-						<b>tON (1 to 999) :</b>
-						<input id="tON" type="number" name="tON" value ="500" style="width:50px;" onkeypress="return numKey(event)" onchange="CheckNo(this)"/> 
-						<select id="unit_second" name="unit">
-							<option value="Hz">ns</option>
-							<option value="kHz">µs</option>
-							<option value="MHz">ms</option>
-							<option value="MHz">s</option>
-						</select>
 					</div>
 				</div>
 				<br>

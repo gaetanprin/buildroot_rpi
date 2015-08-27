@@ -12,7 +12,7 @@ $( document ).ready(function() {
 	var SPANNameLinux = document.getElementById("NameLinux");
 	SPANNameLinux.innerHTML = Value_cookie;
 });
-	
+var freq_val = 500;	
 /* Initialisation des composants */
 $(function() {
 	// Init menu drop
@@ -104,11 +104,13 @@ function numKey(evt){
 function CheckNo(sender){
 	// Verification si nombre compris entre 1 et 999
 	if(!isNaN(sender.value)){
-		if(sender.value > 999 )
-	    		sender.value = 999;
-		if(sender.value < 1 )
-	    		sender.value = 1;
-    	}
+		if(sender.value > 5000000 )
+	    		sender.value = 5000000;
+		if(sender.value < 2 )
+	    		sender.value = 2;
+    	
+	}
+	freq_val=sender.value;
 }
 
 function OutputChange(sender){
@@ -119,21 +121,16 @@ function OutputChange(sender){
 		/* Affichage du texte ON output */
 		TexteOutput.innerHTML = "ON";
 		/* Check mode choisi */
-		if(IDmyonoffswitch.checked == true)
-		{
-			// Execution du prog C -> Pin OFF debug
-			document.getElementById('ID_FRAME').src = "./cgi-bin/test_OFF.sh";
-		}
-		else
-		{
 			// Execution du prog C -> Pin ON debug
-			document.getElementById('ID_FRAME').src = "./cgi-bin/test_ON.sh";
-		}
+			var period=1/parseInt(freq_val);
+			period*=1000000000;
+			document.getElementById('ID_FRAME').src = "./cgi-bin/test_ON.sh?" + period;
     	}
 	else
 	{
 		/* Affichage du texte OFF output */
 		TexteOutput.innerHTML = "OFF";
+		document.getElementById('ID_FRAME').src = "./cgi-bin/test_OFF.sh?";
 		/* Arret du process si il est déjà lancé */
 		// Appel du script kill -9 "num du process"
 	}
