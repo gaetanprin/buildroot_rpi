@@ -1,0 +1,5 @@
+menu "Unofficial drivers"
+
+	source "unofficial_drivers/rpi_gpio_driver/Config.in"
+	source "unofficial_drivers/rpi_gpio_driver_xenomai/Config.in"
+endmenu

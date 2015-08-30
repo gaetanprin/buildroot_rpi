@@ -1,0 +1,16 @@
+config BR2_RPI_GPIO_DRV
+	bool "RPi GPIO Driver Linux"
+	depends on BR2_arm || !BR2_LINUX_KERNEL_EXT_XENOMAI || \
+	BR2_LINUX_KERNEL
+	help
+	  Enable this option if you want to build a Linux kernel
+	  module for your raspberry device.
+	
+config BR2_RPI_GPIO_DRV_XENO
+        bool "RPi GPIO Driver Linux Xenomai"
+        depends on BR2_arm || BR2_LINUX_KERNEL_EXT_XENOMAI || \
+	BR2_LINUX_KERNEL 
+        help
+          Enable this option if you want to build a Linux xenomai
+	  kernel module for your raspberry device.
+
