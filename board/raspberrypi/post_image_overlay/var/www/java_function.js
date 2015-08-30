@@ -12,7 +12,8 @@ $( document ).ready(function() {
 	var SPANNameLinux = document.getElementById("NameLinux");
 	SPANNameLinux.innerHTML = Value_cookie;
 });
-var freq_val = 500;	
+var freq_val = 500;
+var gpio=47;	
 /* Initialisation des composants */
 $(function() {
 	// Init menu drop
@@ -112,7 +113,17 @@ function CheckNo(sender){
 	}
 	freq_val=sender.value;
 }
-
+function CheckGPIO(sender){
+	// Verification si nombre compris entre 1 et 47
+	if(!isNaN(sender.value)){
+		if(sender.value > 47 )
+	    		sender.value = 47;
+		if(sender.value < 1 )
+	    		sender.value = 1;
+    	
+	}
+	gpio=sender.value;
+}
 function OutputChange(sender){
 	var TexteOutput = document.getElementById("Texte_output");
 	var IDmyonoffswitch = document.getElementById("myonoffswitch");
@@ -124,13 +135,15 @@ function OutputChange(sender){
 			// Execution du prog C -> Pin ON debug
 			var period=1/parseInt(freq_val);
 			period*=1000000000;
-			document.getElementById('ID_FRAME').src = "./cgi-bin/test_ON.sh?" + period;
+			linux_mode = Cookies.get('COOKIE_MODE');
+			document.getElementById('ID_FRAME').src = "./cgi-bin/test_ON.sh?period=" + period + "&linux_mode=" + linux_mode + "&gpio=" + gpio;
     	}
 	else
 	{
 		/* Affichage du texte OFF output */
 		TexteOutput.innerHTML = "OFF";
-		document.getElementById('ID_FRAME').src = "./cgi-bin/test_OFF.sh?";
+		var linux_mode = Cookies.get('COOKIE_MODE');
+		document.getElementById('ID_FRAME').src = "./cgi-bin/test_OFF.sh?linux_mode=" + linux_mode;
 		/* Arret du process si il est déjà lancé */
 		// Appel du script kill -9 "num du process"
 	}
